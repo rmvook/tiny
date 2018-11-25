@@ -121,8 +121,8 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 	char *ptr;
 
 	if (!strstr(uri, "cgi-bin")) { /* Static content */ //line:netp:parseuri:isstatic
-		strcpy(cgiargs, "");                       //line:netp:parseuri:clearcgi
-		strcpy(filename, ".");                //line:netp:parseuri:beginconvert1
+		strncpy(cgiargs, "", 0);                       //line:netp:parseuri:clearcgi
+		strncpy(filename, ".", 1);                //line:netp:parseuri:beginconvert1
 		strcat(filename, uri);                  //line:netp:parseuri:endconvert1
 		if (uri[strlen(uri) - 1] == '/')         //line:netp:parseuri:slashcheck
 			strcat(filename, "home.html");    //line:netp:parseuri:appenddefault
@@ -133,8 +133,8 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 			strcpy(cgiargs, ptr + 1);
 			*ptr = '\0';
 		} else
-			strcpy(cgiargs, "");                 //line:netp:parseuri:endextract
-		strcpy(filename, ".");                //line:netp:parseuri:beginconvert2
+			strncpy(cgiargs, "", 0);                 //line:netp:parseuri:endextract
+		strncpy(filename, ".", 1);                //line:netp:parseuri:beginconvert2
 		strcat(filename, uri);                  //line:netp:parseuri:endconvert2
 		return 0;
 	}
@@ -170,13 +170,13 @@ void serve_static(int fd, char *filename, int filesize) {
  */
 void get_filetype(char *filename, char *filetype) {
 	if (strstr(filename, ".html"))
-		strcpy(filetype, "text/html");
+		strncpy(filetype, "text/html", 9);
 	else if (strstr(filename, ".gif"))
-		strcpy(filetype, "image/gif");
+		strncpy(filetype, "image/gif", 9);
 	else if (strstr(filename, ".jpg"))
-		strcpy(filetype, "image/jpeg");
+		strncpy(filetype, "image/jpeg", 10);
 	else
-		strcpy(filetype, "text/plain");
+		strncpy(filetype, "text/plain", 10);
 }
 /* $end serve_static */
 
