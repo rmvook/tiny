@@ -26,6 +26,11 @@ int main(int argc, char **argv)
     }
     port = atoi(argv[1]);
 
+    //Check to make sure that the port is within a valid range
+    if (port < 1024 || port > 65535){
+        return;
+    }
+
     listenfd = Open_listenfd(port);
     while (1) {
 	clientlen = sizeof(clientaddr);
