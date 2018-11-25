@@ -16,9 +16,11 @@ void clienterror(int fd, char *cause, char *errnum,
 
 int main(int argc, char **argv) 
 {
-    int listenfd, connfd, port, clientlen;
+    //ports can only be 0 to 2^16 -1
+    //unsigned short port;
+    int listenfd, port, connfd;
     struct sockaddr_in clientaddr;
-
+    socklen_t clientlen;
     /* Check command line args */
     if (argc != 2) {
 	fprintf(stderr, "usage: %s <port>\n", argv[0]);
@@ -27,9 +29,9 @@ int main(int argc, char **argv)
     port = atoi(argv[1]);
 
     //Check to make sure that the port is within a valid range
-    if (port < 1024 || port > 65535){
-        return;
-    }
+    // if (port < 1024 || port > 65535){
+    //     return -1;
+    // }
 
     listenfd = Open_listenfd(port);
     while (1) {
@@ -40,6 +42,13 @@ int main(int argc, char **argv)
     }
 }
 /* $end tinymain */
+/*
+ *isValidPort - confirms that the supplied port is valid
+ */
+// int isValidPort(string str)
+// {
+//     return -1;
+// }
 
 /*
  * doit - handle one HTTP request/response transaction
