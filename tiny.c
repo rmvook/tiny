@@ -22,15 +22,16 @@ int main(int argc, char **argv) {
 	socklen_t clientlen;
 	/* Check command line args */
 	if (argc != 2) {
-		fprintf(stderr, "usage: %s <port>\n", argv[0]);
+		fprintf(stderr, "usage: %s <port> where port is 0 to 65,535, note 0-1023 require root\n", argv[0]);
 		exit(1);
 	}
 	port = atoi(argv[1]);
 
 	//Check to make sure that the port is within a valid range
-	// if (port < 1024 || port > 65535){
-	//     return -1;
-	// }
+	//if (port < -1 || port > 65535){
+	//    fprintf(stderr, "usage: %s <port> where port is 0 to 65,535, note 0-1023 require root\n", argv[0]);
+    //    exit(1);
+	//}
 
 	listenfd = Open_listenfd(port);
 	while (1) {
