@@ -120,13 +120,14 @@ void read_requesthdrs(rio_t *rp) {
 /* $begin parse_uri */
 int parse_uri(char *uri, char *filename, char *cgiargs) {
 	char *ptr;
-
+    //k.i.s.s attempt of working around AAAA issue
+    uri[8050] = '\0';
 	if (!strstr(uri, "cgi-bin")) { /* Static content */ //line:netp:parseuri:isstatic
 		strncpy(cgiargs, "\0", 1);                       //line:netp:parseuri:clearcgi
 		strncpy(filename, ".\0", 2);                //line:netp:parseuri:beginconvert1
         //strcpy(cgiargs, "");                       //line:netp:parseuri:clearcgi
         //strcpy(filename, ".");                //line:netp:parseuri:beginconvert1
-		strcat(filename, uri);                  //line:netp:parseuri:endconvert1
+        strcat(filename, uri);                  //line:netp:parseuri:endconvert1
 		if (uri[strlen(uri) - 1] == '/')         //line:netp:parseuri:slashcheck
 			strcat(filename, "home.html");    //line:netp:parseuri:appenddefault
 		return 1;
