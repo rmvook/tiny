@@ -56,7 +56,7 @@ extern char **environ; /* defined by libc */
 #define	MAXLINE	 8192  /* max text line length */
 #define MAXBUF   8192  /* max I/O buffer size */
 #define LISTENQ  1024  /* second argument to listen() */
-
+#define MAXLINUXFILE 256 /*max size of a filename in linux*/
 /* Our own error-handling functions */
 void unix_error(char *msg);
 void posix_error(int code, char *msg);

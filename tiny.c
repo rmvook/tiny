@@ -153,7 +153,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 /* $begin serve_static */
 void serve_static(int fd, char *filename, int filesize) {
 	int srcfd;
-	char *srcp, filetype[MAXLINE], buf[MAXBUF];
+	char *srcp, filetype[MAXLINUXFILE], buf[MAXBUF];
 
 	/* Send response headers to client */
 	get_filetype(filename, filetype);       //line:netp:servestatic:getfiletype
@@ -175,14 +175,15 @@ void serve_static(int fd, char *filename, int filesize) {
  * get_filetype - derive file type from file name
  */
 void get_filetype(char *filename, char *filetype) {
-	if (strstr(filename, ".html"))
-		strncpy(filetype, "text/html", 9);
-	else if (strstr(filename, ".gif"))
-		strncpy(filetype, "image/gif", 9);
-	else if (strstr(filename, ".jpg"))
-		strncpy(filetype, "image/jpeg", 10);
-	else
-		strncpy(filetype, "text/plain", 10);
+	if (strstr(filename, ".html")){
+		strncpy(filetype, "text/html\0", 10);
+    }else if (strstr(filename, ".gif\0")){
+		strncpy(filetype, "image/gif\0", 10);
+    }else if (strstr(filename, ".jpg\0")){
+		strncpy(filetype, "image/jpeg\0", 11);
+    }else{
+		strncpy(filetype, "text/plain\0", 11);
+    }
 }
 /* $end serve_static */
 
