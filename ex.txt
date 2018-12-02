@@ -1,0 +1,1 @@
+This is an example added to show that it still allows text files to be accessed.

@@ -1,6 +1,6 @@
 /* $begin tinymain */
 /*
- * tiny.c - A simple, iterative HTTP/1.0 Web server that uses the 
+ * tiny.c - A simple, iterative HTTP/1.0 Web server that uses the
  *     GET method to serve static and dynamic content.
  */
 #include "csapp.h"
@@ -9,10 +9,11 @@ void doit(int fd);
 void read_requesthdrs(rio_t *rp);
 int parse_uri(char *uri, char *filename, char *cgiargs);
 void serve_static(int fd, char *filename, int filesize);
-void get_filetype(char *filename, char *filetype);
+int get_filetype(char *filename, char *filetype);
 void serve_dynamic(int fd, char *filename, char *cgiargs);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
-		char *longmsg);
+                 char *longmsg);
+int is_file_ok(char *filename);
 
 int main(int argc, char **argv) {
 	//ports can only be 0 to 2^16 -1
@@ -27,11 +28,12 @@ int main(int argc, char **argv) {
 	}
 	port = atoi(argv[1]);
 
-	//Check to make sure that the port is within a valid range
-	//if (port < -1 || port > 65535){
-	//    fprintf(stderr, "usage: %s <port> where port is 0 to 65,535, note 0-1023 require root\n", argv[0]);
-    //    exit(1);
-	//}
+	//Check to make sure that the port is within a valid range, understandably negative ports do work,
+	//but we want you to actually be smart about it.
+	if (port < -1 || port > 65535) {
+		fprintf(stderr, "usage: %s <port> where port is 0 to 65,535, note 0-1023 require root\n", argv[0]);
+		exit(1);
+	}
 
 	listenfd = Open_listenfd(port);
 	while (1) {
@@ -66,7 +68,7 @@ void doit(int fd) {
 	sscanf(buf, "%s %s %s", method, uri, version); //line:netp:doit:parserequest
 	if (strcasecmp(method, "GET")) {            //line:netp:doit:beginrequesterr
 		clienterror(fd, method, "501", "Not Implemented",
-				"Tiny does not implement this method");
+		            "Tiny does not implement this method");
 		return;
 	}                                             //line:netp:doit:endrequesterr
 	read_requesthdrs(&rio);                     //line:netp:doit:readrequesthdrs
@@ -75,21 +77,21 @@ void doit(int fd) {
 	is_static = parse_uri(uri, filename, cgiargs);  //line:netp:doit:staticcheck
 	if (stat(filename, &sbuf) < 0) {              //line:netp:doit:beginnotfound
 		clienterror(fd, filename, "404", "Not found",
-				"Tiny couldn't find this file");
+		            "Tiny couldn't find this file");
 		return;
 	}                                               //line:netp:doit:endnotfound
 
 	if (is_static) { /* Serve static content */
-		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode)) { //line:netp:doit:readable
+		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode) || !is_file_ok(filename)) { //line:netp:doit:readable
 			clienterror(fd, filename, "403", "Forbidden",
-					"Tiny couldn't read the file");
+			            "Tiny couldn't read the file");
 			return;
 		}
 		serve_static(fd, filename, sbuf.st_size);   //line:netp:doit:servestatic
 	} else { /* Serve dynamic content */
 		if (!(S_ISREG(sbuf.st_mode)) || !(S_IXUSR & sbuf.st_mode)) { //line:netp:doit:executable
 			clienterror(fd, filename, "403", "Forbidden",
-					"Tiny couldn't run the CGI program");
+			            "Tiny couldn't run the CGI program");
 			return;
 		}
 		serve_dynamic(fd, filename, cgiargs);      //line:netp:doit:servedynamic
@@ -120,14 +122,14 @@ void read_requesthdrs(rio_t *rp) {
 /* $begin parse_uri */
 int parse_uri(char *uri, char *filename, char *cgiargs) {
 	char *ptr;
-    //k.i.s.s attempt of working around AAAA issue
-    uri[8050] = '\0';
+	//k.i.s.s attempt of working around AAAA issue
+	uri[8050] = '\0';
 	if (!strstr(uri, "cgi-bin")) { /* Static content */ //line:netp:parseuri:isstatic
 		strncpy(cgiargs, "\0", 1);                       //line:netp:parseuri:clearcgi
 		strncpy(filename, ".\0", 2);                //line:netp:parseuri:beginconvert1
-        //strcpy(cgiargs, "");                       //line:netp:parseuri:clearcgi
-        //strcpy(filename, ".");                //line:netp:parseuri:beginconvert1
-        strcat(filename, uri);                  //line:netp:parseuri:endconvert1
+		//strcpy(cgiargs, "");                       //line:netp:parseuri:clearcgi
+		//strcpy(filename, ".");                //line:netp:parseuri:beginconvert1
+		strcat(filename, uri);                  //line:netp:parseuri:endconvert1
 		if (uri[strlen(uri) - 1] == '/')         //line:netp:parseuri:slashcheck
 			strcat(filename, "home.html");    //line:netp:parseuri:appenddefault
 		return 1;
@@ -136,11 +138,12 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 		if (ptr) {
 			strcpy(cgiargs, ptr + 1);
 			*ptr = '\0';
-		} else
-		strncpy(cgiargs, "\0", 1);                 //line:netp:parseuri:endextract
+		} else {
+			strncpy(cgiargs, "\0", 1);                 //line:netp:parseuri:endextract
+		}
 		strncpy(filename, ".\0", 2);                //line:netp:parseuri:beginconvert2
-        //strcpy(cgiargs, "");                 //line:netp:parseuri:endextract
-        //strcpy(filename, ".");                //line:netp:parseuri:beginconvert2
+		//strcpy(cgiargs, "");                 //line:netp:parseuri:endextract
+		//strcpy(filename, ".");                //line:netp:parseuri:beginconvert2
 		strcat(filename, uri);                  //line:netp:parseuri:endconvert2
 		return 0;
 	}
@@ -148,7 +151,7 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 /* $end parse_uri */
 
 /*
- * serve_static - copy a file back to the client 
+ * serve_static - copy a file back to the client
  */
 /* $begin serve_static */
 void serve_static(int fd, char *filename, int filesize) {
@@ -156,11 +159,14 @@ void serve_static(int fd, char *filename, int filesize) {
 	char *srcp, filetype[MAXLINUXFILE], buf[MAXBUF];
 
 	/* Send response headers to client */
-	get_filetype(filename, filetype);       //line:netp:servestatic:getfiletype
-	sprintf(buf, "HTTP/1.0 200 OK\r\n");    //line:netp:servestatic:beginserve
-	sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
-	sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
-	sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
+	//if (
+	get_filetype(filename, filetype);// == 1) {     //line:netp:servestatic:getfiletype
+	sprintf(buf, "HTTP/1.0 200 OK\r\nServer: Tiny Web Server\r\nContent-length: %d\r\nContent-type: %s\r\n\r\n", filesize, filetype);   //line:netp:servestatic:beginserve
+
+	// sprintf(buf, "HTTP/1.0 200 OK\r\n");    //line:netp:servestatic:beginserve
+	// sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
+	// sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
+	// sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
 	Rio_writen(fd, buf, strlen(buf));       //line:netp:servestatic:endserve
 
 	/* Send response body to client */
@@ -169,21 +175,32 @@ void serve_static(int fd, char *filename, int filesize) {
 	Close(srcfd);                           //line:netp:servestatic:close
 	Rio_writen(fd, srcp, filesize);         //line:netp:servestatic:write
 	Munmap(srcp, filesize);                 //line:netp:servestatic:munmap
+	//}
 }
+
 
 /*
  * get_filetype - derive file type from file name
  */
-void get_filetype(char *filename, char *filetype) {
-	if (strstr(filename, ".html")){
+int get_filetype(char *filename, char *filetype) {
+	if (strstr(filename, ".html")) {
 		strncpy(filetype, "text/html\0", 10);
-    }else if (strstr(filename, ".gif\0")){
+		return 1;
+	} else if (strstr(filename, ".gif")) {
 		strncpy(filetype, "image/gif\0", 10);
-    }else if (strstr(filename, ".jpg\0")){
+		return 1;
+	} else if (strstr(filename, ".jpg")) {
 		strncpy(filetype, "image/jpeg\0", 11);
-    }else{
+		return 1;
+	} else if (strstr(filename, ".txt")) {
+		//When everything else defaults to text this is bad because it allows an attacker to gain
+		//access to the source code, the
 		strncpy(filetype, "text/plain\0", 11);
-    }
+		return 1;
+	} else {
+		return -1;
+		//strncpy(filetype, "\0", 1);
+	}
 }
 /* $end serve_static */
 
@@ -215,16 +232,12 @@ void serve_dynamic(int fd, char *filename, char *cgiargs) {
  */
 /* $begin clienterror */
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
-		char *longmsg) {
+                 char *longmsg) {
 	char buf[MAXLINE], body[MAXBUF];
 
 	/* Build the HTTP response body */
-	sprintf(body, "<html><title>Tiny Error</title>");
-	sprintf(body, "%s<body bgcolor=" "ffffff" ">\r\n", body);
-	sprintf(body, "%s%s: %s\r\n", body, errnum, shortmsg);
-	sprintf(body, "%s<p>%s: %s\r\n", body, longmsg, cause);
-	sprintf(body, "%s<hr><em>The Tiny Web server</em>\r\n", body);
-
+	sprintf(body, "<html><title>Tiny Error</title><body bgcolor=" "ffffff" ">\r\n%s: %s\r\n<p>%s: %s\r\n<hr><em>The Tiny Web server</em>\r\n", errnum, shortmsg, longmsg, cause);
+	
 	/* Print the HTTP response */
 	sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
 	Rio_writen(fd, buf, strlen(buf));
@@ -235,3 +248,10 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
 	Rio_writen(fd, body, strlen(body));
 }
 /* $end clienterror */
+
+/*
+Helper function that returns true if the file type is one of the 4 approved file types.
+*/
+int is_file_ok(char *filename) {
+	return ((strstr(filename, ".html")) || (strstr(filename, ".gif")) || (strstr(filename, ".jpg")) || (strstr(filename, ".txt")));
+}
