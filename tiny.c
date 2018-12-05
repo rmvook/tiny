@@ -14,6 +14,9 @@ void serve_dynamic(int fd, char *filename, char *cgiargs);
 void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
                  char *longmsg);
 int is_file_ok(char *filename);
+int canocolize_check(char *filename);
+char *canonicalize_file_name (const char *path); 
+
 
 int main(int argc, char **argv) {
 	//ports can only be 0 to 2^16 -1
@@ -80,9 +83,8 @@ void doit(int fd) {
 		            "Tiny couldn't find this file");
 		return;
 	}                                               //line:netp:doit:endnotfound
-	//TODO canocolize the fileneam
 	if (is_static) { /* Serve static content */
-		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode) || !is_file_ok(filename)) { //line:netp:doit:readable
+		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode) || !is_file_ok(filename) || !canocolize_check(filename)) { //line:netp:doit:readable
 			clienterror(fd, filename, "403", "Forbidden",
 			            "Tiny couldn't read the file");
 			return;
@@ -127,8 +129,6 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 	if (!strstr(uri, "cgi-bin")) { /* Static content */ //line:netp:parseuri:isstatic
 		strncpy(cgiargs, "\0", 1);                       //line:netp:parseuri:clearcgi
 		strncpy(filename, ".\0", 2);                //line:netp:parseuri:beginconvert1
-		//strcpy(cgiargs, "");                       //line:netp:parseuri:clearcgi
-		//strcpy(filename, ".");                //line:netp:parseuri:beginconvert1
 		strcat(filename, uri);                  //line:netp:parseuri:endconvert1
 		if (uri[strlen(uri) - 1] == '/')         //line:netp:parseuri:slashcheck
 			strcat(filename, "home.html");    //line:netp:parseuri:appenddefault
@@ -142,8 +142,6 @@ int parse_uri(char *uri, char *filename, char *cgiargs) {
 			strncpy(cgiargs, "\0", 1);                 //line:netp:parseuri:endextract
 		}
 		strncpy(filename, ".\0", 2);                //line:netp:parseuri:beginconvert2
-		//strcpy(cgiargs, "");                 //line:netp:parseuri:endextract
-		//strcpy(filename, ".");                //line:netp:parseuri:beginconvert2
 		strcat(filename, uri);                  //line:netp:parseuri:endconvert2
 		return 0;
 	}
@@ -159,14 +157,9 @@ void serve_static(int fd, char *filename, int filesize) {
 	char *srcp, filetype[MAXLINUXFILE], buf[MAXBUF];
 
 	/* Send response headers to client */
-	//if (
 	get_filetype(filename, filetype);// == 1) {     //line:netp:servestatic:getfiletype
 	sprintf(buf, "HTTP/1.0 200 OK\r\nServer: Tiny Web Server\r\nContent-length: %d\r\nContent-type: %s\r\n\r\n", filesize, filetype);   //line:netp:servestatic:beginserve
 
-	// sprintf(buf, "HTTP/1.0 200 OK\r\n");    //line:netp:servestatic:beginserve
-	// sprintf(buf, "%sServer: Tiny Web Server\r\n", buf);
-	// sprintf(buf, "%sContent-length: %d\r\n", buf, filesize);
-	// sprintf(buf, "%sContent-type: %s\r\n\r\n", buf, filetype);
 	Rio_writen(fd, buf, strlen(buf));       //line:netp:servestatic:endserve
 
 	/* Send response body to client */
@@ -175,7 +168,6 @@ void serve_static(int fd, char *filename, int filesize) {
 	Close(srcfd);                           //line:netp:servestatic:close
 	Rio_writen(fd, srcp, filesize);         //line:netp:servestatic:write
 	Munmap(srcp, filesize);                 //line:netp:servestatic:munmap
-	//}
 }
 
 
@@ -199,7 +191,6 @@ int get_filetype(char *filename, char *filetype) {
 		return 1;
 	} else {
 		return -1;
-		//strncpy(filetype, "\0", 1);
 	}
 }
 /* $end serve_static */
@@ -254,4 +245,19 @@ Helper function that returns true if the file type is one of the 4 approved file
 */
 int is_file_ok(char *filename) {
 	return ((strstr(filename, ".html")) || (strstr(filename, ".gif")) || (strstr(filename, ".jpg")) || (strstr(filename, ".txt")));
+}
+
+int canocolize_check(char *filename) { 
+	int ret = -1;
+	char *canonical_filename;
+	canonical_filename = (char *)canonicalize_file_name(filename);
+	if (canonical_filename == NULL) {
+		return -1;
+	}
+    ret =  strncmp("tiny", canonical_filename, strlen("tiny")) == 1;
+
+	free(canonical_filename);
+	canonical_filename = NULL;
+
+	return ret;
 }
