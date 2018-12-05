@@ -80,7 +80,7 @@ void doit(int fd) {
 		            "Tiny couldn't find this file");
 		return;
 	}                                               //line:netp:doit:endnotfound
-
+	//TODO canocolize the fileneam
 	if (is_static) { /* Serve static content */
 		if (!(S_ISREG(sbuf.st_mode)) || !(S_IRUSR & sbuf.st_mode) || !is_file_ok(filename)) { //line:netp:doit:readable
 			clienterror(fd, filename, "403", "Forbidden",
@@ -237,7 +237,7 @@ void clienterror(int fd, char *cause, char *errnum, char *shortmsg,
 
 	/* Build the HTTP response body */
 	sprintf(body, "<html><title>Tiny Error</title><body bgcolor=" "ffffff" ">\r\n%s: %s\r\n<p>%s: %s\r\n<hr><em>The Tiny Web server</em>\r\n", errnum, shortmsg, longmsg, cause);
-	
+
 	/* Print the HTTP response */
 	sprintf(buf, "HTTP/1.0 %s %s\r\n", errnum, shortmsg);
 	Rio_writen(fd, buf, strlen(buf));
